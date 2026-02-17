@@ -4,16 +4,16 @@
    progression across columns.
    ──────────────────────────────────────────── */
 const PALETTE = [
-  { name: "墨",     top: "#2A2624", mid: "#1E1C1A", bot: "#141210", text: "#EE836F" },  // sumi (ink) → 珊瑚 coral
-  { name: "鉄紺",   top: "#222438", mid: "#1A1C2E", bot: "#101222", text: "#C0D0E8" },  // tetsukon (iron navy) → 月白 moon
-  { name: "黒紅",   top: "#321E28", mid: "#2A1620", bot: "#1E0E16", text: "#F0B4B4" },  // kurobeni (black crimson) → 桜 cherry
-  { name: "深緑",   top: "#1E2A1E", mid: "#162018", bot: "#0E1610", text: "#A8CC88" },  // fukamidori (deep forest) → 若草 young grass
-  { name: "暗紫",   top: "#2A2032", mid: "#201828", bot: "#16101E", text: "#C8B0D8" },  // anshi (dark purple) → 藤 wisteria
-  { name: "焦茶",   top: "#2E2418", mid: "#241C14", bot: "#1A140E", text: "#E8C870" },  // kogecha (burnt umber) → 山吹 gold
-  { name: "藍墨",   top: "#1C2830", mid: "#142028", bot: "#0E161E", text: "#7EC8A8" },  // ai-sumi (indigo ink) → 青磁 celadon
-  { name: "葡萄鼠", top: "#2C2028", mid: "#221A22", bot: "#18121A", text: "#E098B0" },  // budō-nezumi (grape gray) → 紅梅 plum
-  { name: "海松",   top: "#242818", mid: "#1C2014", bot: "#14180E", text: "#D0B858" },  // miru (dark olive) → 鬱金 turmeric
-  { name: "鉄",     top: "#1E2628", mid: "#182022", bot: "#10181A", text: "#80B8D0" },  // tetsu (iron) → 白群 pale blue
+  { name: "墨",     top: "#2A2624", mid: "#1E1C1A", bot: "#141210", text: "#7DB9DE" },  // sumi (warm charcoal) → 勿忘草 forget-me-not blue
+  { name: "鉄紺",   top: "#222438", mid: "#1A1C2E", bot: "#101222", text: "#E8B040" },  // tetsukon (iron navy) → 蜜柑 tangerine amber
+  { name: "黒紅",   top: "#321E28", mid: "#2A1620", bot: "#1E0E16", text: "#68C0A8" },  // kurobeni (black crimson) → 青磁 celadon
+  { name: "深緑",   top: "#1E2A1E", mid: "#162018", bot: "#0E1610", text: "#E08DA0" },  // fukamidori (deep forest) → 桃 peach blossom
+  { name: "暗紫",   top: "#2A2032", mid: "#201828", bot: "#16101E", text: "#C0D060" },  // anshi (dark purple) → 萌黄 chartreuse
+  { name: "焦茶",   top: "#2E2418", mid: "#241C14", bot: "#1A140E", text: "#6898D0" },  // kogecha (burnt umber) → 露草 dayflower blue
+  { name: "藍墨",   top: "#1C2830", mid: "#142028", bot: "#0E161E", text: "#EE836F" },  // ai-sumi (indigo ink) → 珊瑚 coral
+  { name: "葡萄鼠", top: "#2C2028", mid: "#221A22", bot: "#18121A", text: "#78C898" },  // budō-nezumi (grape gray) → 若竹 young bamboo
+  { name: "海松",   top: "#242818", mid: "#1C2014", bot: "#14180E", text: "#B898D0" },  // miru (dark olive) → 藤 wisteria
+  { name: "鉄",     top: "#1E2628", mid: "#182022", bot: "#10181A", text: "#E8A090" },  // tetsu (iron teal) → 鴇 ibis pink
 ];
 
 function paletteGradient(idx) {
