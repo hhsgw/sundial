@@ -1,63 +1,45 @@
 /* ────────────────────────────────────────────
-   Color system – time-of-day gradient (FIO style)
-   Maps the local hour at each timezone to a
-   background color. Daytime is warm & light,
-   nighttime is deep & dark.
+   Color palette – 日本の伝統色 (Traditional Japanese Colors)
+   Ordered as a color wheel for smooth visual
+   progression across columns.
    ──────────────────────────────────────────── */
-const TIME_STOPS = [
-  { h: 0,  r: 15,  g: 13,  b: 50  },   // midnight – deep indigo
-  { h: 3,  r: 15,  g: 28,  b: 58  },   // pre-dawn – dark navy
-  { h: 5,  r: 55,  g: 130, b: 125 },   // dawn – muted teal
-  { h: 6,  r: 75,  g: 192, b: 182 },   // early morning – teal
-  { h: 8,  r: 140, g: 198, b: 158 },   // morning – sage green
-  { h: 9,  r: 168, g: 208, b: 168 },   // mid-morning – mint
-  { h: 11, r: 212, g: 218, b: 142 },   // late morning – yellow-green
-  { h: 13, r: 238, g: 188, b: 68  },   // noon – golden
-  { h: 15, r: 232, g: 158, b: 48  },   // afternoon – amber
-  { h: 17, r: 212, g: 122, b: 62  },   // late afternoon – orange
-  { h: 19, r: 142, g: 92,  b: 142 },   // sunset – mauve
-  { h: 20, r: 68,  g: 42,  b: 102 },   // evening – dark purple
-  { h: 22, r: 32,  g: 26,  b: 78  },   // night – dark navy
-  { h: 24, r: 15,  g: 13,  b: 50  },   // midnight
+const PALETTE = [
+  { name: "墨",     top: "#2A2624", mid: "#1E1C1A", bot: "#141210", text: "#EE836F" },  // sumi (ink) → 珊瑚 coral
+  { name: "鉄紺",   top: "#222438", mid: "#1A1C2E", bot: "#101222", text: "#C0D0E8" },  // tetsukon (iron navy) → 月白 moon
+  { name: "黒紅",   top: "#321E28", mid: "#2A1620", bot: "#1E0E16", text: "#F0B4B4" },  // kurobeni (black crimson) → 桜 cherry
+  { name: "深緑",   top: "#1E2A1E", mid: "#162018", bot: "#0E1610", text: "#A8CC88" },  // fukamidori (deep forest) → 若草 young grass
+  { name: "暗紫",   top: "#2A2032", mid: "#201828", bot: "#16101E", text: "#C8B0D8" },  // anshi (dark purple) → 藤 wisteria
+  { name: "焦茶",   top: "#2E2418", mid: "#241C14", bot: "#1A140E", text: "#E8C870" },  // kogecha (burnt umber) → 山吹 gold
+  { name: "藍墨",   top: "#1C2830", mid: "#142028", bot: "#0E161E", text: "#7EC8A8" },  // ai-sumi (indigo ink) → 青磁 celadon
+  { name: "葡萄鼠", top: "#2C2028", mid: "#221A22", bot: "#18121A", text: "#E098B0" },  // budō-nezumi (grape gray) → 紅梅 plum
+  { name: "海松",   top: "#242818", mid: "#1C2014", bot: "#14180E", text: "#D0B858" },  // miru (dark olive) → 鬱金 turmeric
+  { name: "鉄",     top: "#1E2628", mid: "#182022", bot: "#10181A", text: "#80B8D0" },  // tetsu (iron) → 白群 pale blue
 ];
 
-function lerpStops(hour) {
-  hour = ((hour % 24) + 24) % 24;
-  let i = 0;
-  for (; i < TIME_STOPS.length - 1; i++) {
-    if (hour < TIME_STOPS[i + 1].h) break;
+function paletteGradient(idx) {
+  const c = PALETTE[idx % PALETTE.length];
+  return `linear-gradient(180deg, ${c.top} 0%, ${c.mid} 50%, ${c.bot} 100%)`;
+}
+
+function textColorForPalette(idx) {
+  return PALETTE[idx % PALETTE.length].text;
+}
+
+/* ── Home timezone & offset difference ── */
+const HOME_TZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+function getOffsetDiffLabel(tz) {
+  const homeOffset = getOffsetMinutes(HOME_TZ);
+  const colOffset = getOffsetMinutes(tz);
+  const diffMinutes = colOffset - homeOffset;
+  if (diffMinutes === 0) return "\u2302";  // ⌂
+  const diffHours = diffMinutes / 60;
+  if (Number.isInteger(diffHours)) {
+    return (diffHours > 0 ? "+" : "") + diffHours;
   }
-  const a = TIME_STOPS[i], b = TIME_STOPS[i + 1];
-  const t = (hour - a.h) / (b.h - a.h);
-  return {
-    r: Math.round(a.r + (b.r - a.r) * t),
-    g: Math.round(a.g + (b.g - a.g) * t),
-    b: Math.round(a.b + (b.b - a.b) * t),
-  };
-}
-
-function getHourOfDay(tz) {
-  const now = getNow();
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: tz, hour: "numeric", minute: "numeric", hour12: false,
-  }).formatToParts(now);
-  const h = parseInt(parts.find(p => p.type === "hour").value, 10);
-  const m = parseInt(parts.find(p => p.type === "minute").value, 10);
-  return (h % 24) + m / 60;
-}
-
-function timeOfDayGradient(tz) {
-  const hour = getHourOfDay(tz);
-  const c = lerpStops(hour);
-  const top = { r: Math.min(255, c.r + 12), g: Math.min(255, c.g + 12), b: Math.min(255, c.b + 8) };
-  const bot = { r: Math.max(0, c.r - 12), g: Math.max(0, c.g - 12), b: Math.max(0, c.b - 8) };
-  return `linear-gradient(180deg, rgb(${top.r},${top.g},${top.b}) 0%, rgb(${c.r},${c.g},${c.b}) 50%, rgb(${bot.r},${bot.g},${bot.b}) 100%)`;
-}
-
-function textColorForBg(tz) {
-  const c = lerpStops(getHourOfDay(tz));
-  const lum = (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255;
-  return lum > 0.45 ? "rgba(30, 30, 60, 0.85)" : "rgba(255, 255, 255, 0.92)";
+  const sign = diffMinutes > 0 ? "+" : "-";
+  const abs = Math.abs(diffMinutes);
+  return `${sign}${Math.floor(abs / 60)}:${String(abs % 60).padStart(2, "0")}`;
 }
 
 /* ────────────────────────────────────────────
@@ -342,6 +324,16 @@ function groupLocations() {
 
   // Sort groups by offset (west to east)
   groups.sort((a, b) => a.offset - b.offset);
+
+  // Place home timezone group in the center
+  const homeOffset = getOffsetMinutes(HOME_TZ);
+  const homeIdx = groups.findIndex(g => g.offset === homeOffset);
+  if (homeIdx !== -1 && groups.length > 1) {
+    const [homeGroup] = groups.splice(homeIdx, 1);
+    const center = Math.floor(groups.length / 2);
+    groups.splice(center, 0, homeGroup);
+  }
+
   return groups;
 }
 
@@ -370,8 +362,9 @@ function ordinalDay(n) {
 function formatDate(tz) {
   const now = getNow();
   const weekday = new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "short" }).format(now);
+  const month = new Intl.DateTimeFormat("en-US", { timeZone: tz, month: "short" }).format(now);
   const day = parseInt(new Intl.DateTimeFormat("en-US", { timeZone: tz, day: "numeric" }).format(now), 10);
-  return `${weekday}. ${ordinalDay(day)}`;
+  return `${weekday}. ${month} ${ordinalDay(day)}`;
 }
 
 function getOffsetLabel(tz) {
@@ -401,14 +394,12 @@ function renderColumns() {
     col.dataset.tz = group.tz;
     col.dataset.idx = idx;
 
-    col.style.background = timeOfDayGradient(group.tz);
-    col.style.color = textColorForBg(group.tz);
+    col.style.background = paletteGradient(idx);
+    col.style.color = textColorForPalette(idx);
 
-    // Stacked time (hours over minutes)
     const tp = formatTimeParts(group.tz);
     const ampmHTML = tp.ampm ? `<span class="ampm">${tp.ampm}</span>` : "";
 
-    // City names: FIO-style (City, ST, Country) or (City, Country)
     const citiesHTML = group.cities.map(c =>
       `<div class="col-city-name">${formatCityDisplay(c)}</div>`
     ).join("");
@@ -421,6 +412,7 @@ function renderColumns() {
       <div class="col-date">${formatDate(group.tz)}</div>
       <hr class="col-divider">
       <div class="col-cities">${citiesHTML}</div>
+      <span class="col-offset-diff">${getOffsetDiffLabel(group.tz)}</span>
       <button class="remove-col-btn" data-idx="${idx}" title="Remove this column">&times;</button>
     `;
 
@@ -436,8 +428,8 @@ function updateColumns() {
     const group = groups[idx];
     if (!group) return;
 
-    col.style.background = timeOfDayGradient(group.tz);
-    col.style.color = textColorForBg(group.tz);
+    col.style.background = paletteGradient(idx);
+    col.style.color = textColorForPalette(idx);
 
     const tp = formatTimeParts(group.tz);
     const ampmHTML = tp.ampm ? `<span class="ampm">${tp.ampm}</span>` : "";
