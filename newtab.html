@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sundial</title>
+<style>
+  /* ── Reset ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+    background: #2a1f1a;
+    color: #fff;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Top bar ── */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+    background: rgba(0,0,0,0.25);
+    z-index: 20;
+    flex-shrink: 0;
+  }
+
+  .top-bar .logo {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+
+  .top-bar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .top-btn {
+    background: rgba(255,255,255,0.1);
+    border: none;
+    color: rgba(255,255,255,0.7);
+    font-size: 12px;
+    font-family: inherit;
+    padding: 5px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.5px;
+  }
+
+  .top-btn:hover { background: rgba(255,255,255,0.2); color: #fff; }
+
+  /* ── Segmented toggle ── */
+  .format-toggle {
+    display: flex;
+    background: rgba(255,255,255,0.08);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  .format-toggle button {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.4);
+    font-size: 11px;
+    font-family: inherit;
+    font-weight: 500;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.5px;
+  }
+
+  .format-toggle button:hover { color: rgba(255,255,255,0.7); }
+  .format-toggle button.active {
+    background: rgba(255,255,255,0.18);
+    color: #fff;
+  }
+
+  /* ── Main columns area ── */
+  .columns-wrapper {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+
+  /* ── Individual column ── */
+  .tz-column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: background 0.8s ease, flex 0.3s ease;
+    cursor: default;
+    min-width: 0;
+    padding: 20px 6px;
+    overflow: hidden;
+  }
+
+  .tz-column:hover .remove-col-btn { opacity: 1; }
+
+  .col-time {
+    font-size: clamp(24px, 4.5vw, 64px);
+    font-weight: 200;
+    letter-spacing: -1px;
+    line-height: 1;
+    text-shadow: 0 1px 8px rgba(0,0,0,0.2);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  .col-time .ampm {
+    font-size: 0.35em;
+    font-weight: 400;
+    margin-left: 4px;
+    vertical-align: super;
+    opacity: 0.7;
+  }
+
+  .col-date {
+    font-size: clamp(9px, 1.1vw, 12px);
+    font-weight: 400;
+    opacity: 0.6;
+    margin-top: 6px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .col-offset {
+    font-size: clamp(8px, 1vw, 11px);
+    font-weight: 400;
+    opacity: 0.4;
+    margin-top: 4px;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .col-cities {
+    margin-top: clamp(8px, 1.5vh, 16px);
+    text-align: center;
+    width: 100%;
+    padding: 0 4px;
+  }
+
+  .col-city-name {
+    font-size: clamp(8px, 1.1vw, 12px);
+    font-weight: 600;
+    letter-spacing: clamp(0.5px, 0.15vw, 2px);
+    text-transform: uppercase;
+    opacity: 0.8;
+    line-height: 1.8;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+  }
+
+  .remove-col-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(0,0,0,0.3);
+    border: none;
+    color: rgba(255,255,255,0.6);
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    font-size: 14px;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
+  }
+
+  .remove-col-btn:hover { background: rgba(0,0,0,0.5); color: #fff; }
+
+  /* ── Empty state ── */
+  .empty-state {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: rgba(255,255,255,0.3);
+    font-size: 14px;
+    letter-spacing: 1px;
+    gap: 12px;
+  }
+
+  .empty-state .hint {
+    font-size: 12px;
+    opacity: 0.6;
+  }
+
+  /* ── Add panel (modal overlay) ── */
+  .add-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 100;
+    display: none;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .add-overlay.visible { display: flex; }
+
+  .add-panel {
+    background: #302420;
+    border-radius: 12px;
+    padding: 28px 24px;
+    width: 380px;
+    max-width: 90vw;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  }
+
+  .add-panel h2 {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+    margin-bottom: 16px;
+  }
+
+  .search-input {
+    width: 100%;
+    padding: 12px 16px;
+    font-size: 15px;
+    font-family: inherit;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.06);
+    color: #fff;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+
+  .search-input:focus { border-color: rgba(255,255,255,0.3); }
+  .search-input::placeholder { color: rgba(255,255,255,0.25); }
+
+  .suggestions {
+    margin-top: 8px;
+    max-height: 240px;
+    overflow-y: auto;
+    border-radius: 8px;
+  }
+
+  .suggestion-item {
+    padding: 10px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 6px;
+    transition: background 0.1s;
+    color: rgba(255,255,255,0.8);
+  }
+
+  .suggestion-item:hover, .suggestion-item.focused {
+    background: rgba(255,255,255,0.08);
+  }
+
+  .suggestion-item .tz-label {
+    color: rgba(255,255,255,0.3);
+    font-size: 11px;
+  }
+
+  .close-panel-btn {
+    margin-top: 16px;
+    width: 100%;
+    padding: 8px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: rgba(255,255,255,0.5);
+    font-size: 12px;
+    font-family: inherit;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .close-panel-btn:hover { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.8); }
+
+  /* ── Scrollbar for suggestions ── */
+  .suggestions::-webkit-scrollbar { width: 4px; }
+  .suggestions::-webkit-scrollbar-track { background: transparent; }
+  .suggestions::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+  /* ── Time-travel indicator ── */
+  .time-travel-bar {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(20px);
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    padding: 8px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    color: rgba(255,255,255,0.9);
+    z-index: 50;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s, transform 0.25s;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    white-space: nowrap;
+  }
+
+  .time-travel-bar.visible {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+  }
+
+  .time-travel-bar .tt-label {
+    opacity: 0.6;
+    font-size: 11px;
+  }
+
+  .time-travel-bar .tt-reset {
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: rgba(255,255,255,0.7);
+    font-size: 11px;
+    font-family: inherit;
+    padding: 3px 10px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.5px;
+  }
+
+  .time-travel-bar .tt-reset:hover {
+    background: rgba(255,255,255,0.25);
+    color: #fff;
+  }
+
+  /* ── Responsive: short windows ── */
+  @media (max-height: 480px) {
+    .col-cities { margin-top: 4px; }
+    .col-date { margin-top: 3px; }
+    .col-offset { margin-top: 2px; }
+    .col-city-name { line-height: 1.5; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Top bar -->
+<div class="top-bar">
+  <div class="logo">SUNDIAL</div>
+  <div class="top-bar-actions">
+    <div class="format-toggle">
+      <button id="btn12h">12H</button>
+      <button id="btn24h">24H</button>
+    </div>
+    <button class="top-btn" id="addBtn">+ Add Location</button>
+  </div>
+</div>
+
+<!-- Columns -->
+<div class="columns-wrapper" id="columnsWrapper">
+  <div class="empty-state" id="emptyState">
+    <span>No locations yet</span>
+    <span class="hint">Click "+ Add" to get started</span>
+  </div>
+</div>
+
+<!-- Time-travel indicator -->
+<div class="time-travel-bar" id="timeTravelBar">
+  <span id="ttOffset">+0h</span>
+  <span class="tt-label">scroll to time-travel</span>
+  <button class="tt-reset" id="ttReset">Reset</button>
+</div>
+
+<!-- Add location overlay -->
+<div class="add-overlay" id="addOverlay">
+  <div class="add-panel">
+    <h2>Add Location</h2>
+    <input
+      type="text"
+      class="search-input"
+      id="searchInput"
+      placeholder="Search for a city..."
+      autocomplete="off"
+    >
+    <div class="suggestions" id="suggestions"></div>
+    <button class="close-panel-btn" id="closePanelBtn">Close</button>
+  </div>
+</div>
+
+<script src="newtab.js"></script>
+</body>
+</html>
