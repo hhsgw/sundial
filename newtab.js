@@ -1,28 +1,63 @@
 /* ────────────────────────────────────────────
-   Color palette – 日本の伝統色 (Traditional Japanese Colors)
-   Each column gets a color from the palette.
-   Gradients lighten at top, deepen at bottom.
+   Color system – time-of-day gradient (FIO style)
+   Maps the local hour at each timezone to a
+   background color. Daytime is warm & light,
+   nighttime is deep & dark.
    ──────────────────────────────────────────── */
-const PALETTE = [
-  { name: "縹",   top: "#4A8DAD", mid: "#2A6B8A", bot: "#1A4560" },  // hanada – gentle indigo blue
-  { name: "茜",   top: "#C46B5A", mid: "#A24038", bot: "#6E2520" },  // akane – madder red
-  { name: "鶯",   top: "#8A9652", mid: "#6B7B3A", bot: "#455228" },  // uguisu – warbler olive
-  { name: "山吹", top: "#D4A84A", mid: "#B8892E", bot: "#7A5B1A" },  // yamabuki – golden
-  { name: "藤",   top: "#9685A8", mid: "#7B6B8D", bot: "#52455E" },  // fuji – wisteria purple
-  { name: "青磁", top: "#7AAE9A", mid: "#5A8C7B", bot: "#3A5E52" },  // seiji – celadon green
-  { name: "柿",   top: "#D47A52", mid: "#B85C3A", bot: "#7A3A22" },  // kaki – persimmon
-  { name: "葡萄", top: "#8E5472", mid: "#6B3654", bot: "#482238" },  // budou – grape
-  { name: "松葉", top: "#6E8E65", mid: "#4B6B45", bot: "#30462C" },  // matsuba – pine needle
-  { name: "小豆", top: "#A86262", mid: "#8B4545", bot: "#5E2C2C" },  // azuki – red bean
+const TIME_STOPS = [
+  { h: 0,  r: 15,  g: 13,  b: 50  },   // midnight – deep indigo
+  { h: 3,  r: 15,  g: 28,  b: 58  },   // pre-dawn – dark navy
+  { h: 5,  r: 55,  g: 130, b: 125 },   // dawn – muted teal
+  { h: 6,  r: 75,  g: 192, b: 182 },   // early morning – teal
+  { h: 8,  r: 140, g: 198, b: 158 },   // morning – sage green
+  { h: 9,  r: 168, g: 208, b: 168 },   // mid-morning – mint
+  { h: 11, r: 212, g: 218, b: 142 },   // late morning – yellow-green
+  { h: 13, r: 238, g: 188, b: 68  },   // noon – golden
+  { h: 15, r: 232, g: 158, b: 48  },   // afternoon – amber
+  { h: 17, r: 212, g: 122, b: 62  },   // late afternoon – orange
+  { h: 19, r: 142, g: 92,  b: 142 },   // sunset – mauve
+  { h: 20, r: 68,  g: 42,  b: 102 },   // evening – dark purple
+  { h: 22, r: 32,  g: 26,  b: 78  },   // night – dark navy
+  { h: 24, r: 15,  g: 13,  b: 50  },   // midnight
 ];
 
-function timeOfDayGradient(tz, paletteIndex) {
-  const c = PALETTE[paletteIndex % PALETTE.length];
-  return `linear-gradient(180deg, ${c.top} 0%, ${c.mid} 50%, ${c.bot} 100%)`;
+function lerpStops(hour) {
+  hour = ((hour % 24) + 24) % 24;
+  let i = 0;
+  for (; i < TIME_STOPS.length - 1; i++) {
+    if (hour < TIME_STOPS[i + 1].h) break;
+  }
+  const a = TIME_STOPS[i], b = TIME_STOPS[i + 1];
+  const t = (hour - a.h) / (b.h - a.h);
+  return {
+    r: Math.round(a.r + (b.r - a.r) * t),
+    g: Math.round(a.g + (b.g - a.g) * t),
+    b: Math.round(a.b + (b.b - a.b) * t),
+  };
 }
 
-function textColorForBg() {
-  return "rgba(255,255,255,0.95)";
+function getHourOfDay(tz) {
+  const now = getNow();
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz, hour: "numeric", minute: "numeric", hour12: false,
+  }).formatToParts(now);
+  const h = parseInt(parts.find(p => p.type === "hour").value, 10);
+  const m = parseInt(parts.find(p => p.type === "minute").value, 10);
+  return (h % 24) + m / 60;
+}
+
+function timeOfDayGradient(tz) {
+  const hour = getHourOfDay(tz);
+  const c = lerpStops(hour);
+  const top = { r: Math.min(255, c.r + 12), g: Math.min(255, c.g + 12), b: Math.min(255, c.b + 8) };
+  const bot = { r: Math.max(0, c.r - 12), g: Math.max(0, c.g - 12), b: Math.max(0, c.b - 8) };
+  return `linear-gradient(180deg, rgb(${top.r},${top.g},${top.b}) 0%, rgb(${c.r},${c.g},${c.b}) 50%, rgb(${bot.r},${bot.g},${bot.b}) 100%)`;
+}
+
+function textColorForBg(tz) {
+  const c = lerpStops(getHourOfDay(tz));
+  const lum = (0.299 * c.r + 0.587 * c.g + 0.114 * c.b) / 255;
+  return lum > 0.45 ? "rgba(30, 30, 60, 0.85)" : "rgba(255, 255, 255, 0.92)";
 }
 
 /* ────────────────────────────────────────────
@@ -313,22 +348,30 @@ function groupLocations() {
 /* ────────────────────────────────────────────
    Formatting
    ──────────────────────────────────────────── */
-function formatTime(tz) {
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: tz,
-    hour: "numeric",
-    minute: "2-digit",
-    hour12: !use24h,
+function formatTimeParts(tz) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: !use24h,
   }).formatToParts(getNow());
+  let hours = "", minutes = "", ampm = "";
+  parts.forEach(p => {
+    if (p.type === "hour") hours = p.value;
+    if (p.type === "minute") minutes = p.value;
+    if (p.type === "dayPeriod") ampm = p.value;
+  });
+  return { hours, minutes, ampm };
+}
+
+function ordinalDay(n) {
+  const s = ["th","st","nd","rd"];
+  const v = n % 100;
+  return n + (s[(v - 20) % 10] || s[v] || s[0]);
 }
 
 function formatDate(tz) {
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: tz,
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  }).format(getNow());
+  const now = getNow();
+  const weekday = new Intl.DateTimeFormat("en-US", { timeZone: tz, weekday: "short" }).format(now);
+  const day = parseInt(new Intl.DateTimeFormat("en-US", { timeZone: tz, day: "numeric" }).format(now), 10);
+  return `${weekday}. ${ordinalDay(day)}`;
 }
 
 function getOffsetLabel(tz) {
@@ -358,19 +401,12 @@ function renderColumns() {
     col.dataset.tz = group.tz;
     col.dataset.idx = idx;
 
-    col.style.background = timeOfDayGradient(group.tz, idx);
+    col.style.background = timeOfDayGradient(group.tz);
     col.style.color = textColorForBg(group.tz);
 
-    // Time
-    const parts = formatTime(group.tz);
-    let timeHTML = "";
-    parts.forEach(p => {
-      if (p.type === "dayPeriod") {
-        timeHTML += `<span class="ampm">${p.value}</span>`;
-      } else {
-        timeHTML += p.value;
-      }
-    });
+    // Stacked time (hours over minutes)
+    const tp = formatTimeParts(group.tz);
+    const ampmHTML = tp.ampm ? `<span class="ampm">${tp.ampm}</span>` : "";
 
     // City names: FIO-style (City, ST, Country) or (City, Country)
     const citiesHTML = group.cities.map(c =>
@@ -378,9 +414,12 @@ function renderColumns() {
     ).join("");
 
     col.innerHTML = `
-      <div class="col-time">${timeHTML}</div>
+      <div class="col-time">
+        <span class="col-hours">${tp.hours}</span>
+        <span class="col-minutes">${tp.minutes}${ampmHTML}</span>
+      </div>
       <div class="col-date">${formatDate(group.tz)}</div>
-      <div class="col-offset">${getOffsetLabel(group.tz)}</div>
+      <hr class="col-divider">
       <div class="col-cities">${citiesHTML}</div>
       <button class="remove-col-btn" data-idx="${idx}" title="Remove this column">&times;</button>
     `;
@@ -397,22 +436,16 @@ function updateColumns() {
     const group = groups[idx];
     if (!group) return;
 
-    col.style.background = timeOfDayGradient(group.tz, idx);
+    col.style.background = timeOfDayGradient(group.tz);
     col.style.color = textColorForBg(group.tz);
 
-    const parts = formatTime(group.tz);
-    let timeHTML = "";
-    parts.forEach(p => {
-      if (p.type === "dayPeriod") {
-        timeHTML += `<span class="ampm">${p.value}</span>`;
-      } else {
-        timeHTML += p.value;
-      }
-    });
+    const tp = formatTimeParts(group.tz);
+    const ampmHTML = tp.ampm ? `<span class="ampm">${tp.ampm}</span>` : "";
+    col.querySelector(".col-time").innerHTML =
+      `<span class="col-hours">${tp.hours}</span>` +
+      `<span class="col-minutes">${tp.minutes}${ampmHTML}</span>`;
 
-    col.querySelector(".col-time").innerHTML = timeHTML;
     col.querySelector(".col-date").textContent = formatDate(group.tz);
-    col.querySelector(".col-offset").textContent = getOffsetLabel(group.tz);
   });
 }
 
